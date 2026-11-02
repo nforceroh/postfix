@@ -16,4 +16,6 @@ test: build
 	./tests/run_tests.sh "$(IMAGE):$(TAG)"
 
 run: build
-	docker run --rm -it -p 25:25 $(IMAGE):$(TAG)
+	docker run --rm -it \
+		-p 25:25 -p 465:465 -p 587:587 -p 10025:10025 \
+		$(IMAGE):$(TAG)
