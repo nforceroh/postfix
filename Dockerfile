@@ -1,4 +1,4 @@
-FROM ghcr.io/nforceroh/k8s-alpine-baseimage:3.23
+FROM ghcr.io/nforceroh/alpine-base:3.24
 
 ARG \
   BUILD_DATE=unknown \
@@ -8,7 +8,7 @@ LABEL \
   org.label-schema.maintainer="Sylvain Martin (sylvain@nforcer.com)" \
   org.label-schema.build-date="${BUILD_DATE}" \
   org.label-schema.version="${VERSION}" \
-  org.label-schema.vcs-url="https://github.com/nforcer/k8s-postfix" \
+  org.label-schema.vcs-url="https://github.com/nforceroh/postfix" \
   org.label-schema.schema-version="1.0"
 
 ENV MAILNAME=mail.example.com \

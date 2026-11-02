@@ -1,63 +1,19 @@
-#!/usr/bin/make -f
-
+# Local build and test only — CI is the sole publisher.
+# Shared pipelines: https://github.com/nforceroh/.github
 SHELL := /bin/bash
-IMG_NAME := postfix
-IMG_REPO := nforceroh
-IMG_NS := homelab
-IMG_REG := harbor.k3s.nf.lab
-DATE_VERSION := $(shell date +"v%Y%m%d%H%M" )
-BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-DOCKERCMD := docker
+IMAGE ?= ghcr.io/nforceroh/postfix
+TAG   ?= dev
 
-ifeq ($(BRANCH),main)
-	VERSION := dev
-else
-	VERSION := $(BRANCH)
-endif
+.PHONY: build test run
 
-.PHONY: all build push gitcommit gitpush create
-all: build push 
-git: gitcommit gitpush 
-
-build: 
-	@echo "Building $(IMG_NAME):$(VERSION) image"
-	$(DOCKERCMD) build \
+build:
+	docker build \
 		--build-arg BUILD_DATE="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-		--build-arg VERSION="$(VERSION)" \
-		--build-arg VCS_REF="$(shell git rev-parse --short HEAD)" \
-		--tag $(IMG_REPO)/$(IMG_NAME):$(VERSION) \
-		--tag $(IMG_REPO)/$(IMG_NAME):latest .
+		--build-arg VERSION="$(TAG)" \
+		--tag $(IMAGE):$(TAG) .
 
-gitcommit:
-	@echo "Committing changes"
-	git add -A
-	git commit -m "chore: build $(VERSION)" || true
+test: build
+	./tests/run_tests.sh "$(IMAGE):$(TAG)"
 
-gitpush:
-	@echo "Pushing $(VERSION) to origin"
-	git tag -a $(VERSION) -m "Release $(VERSION)" 2>/dev/null || true
-	git push origin main
-	git push origin $(VERSION) || true
-
-push: 
-	@echo "Pushing $(IMG_NAME):$(VERSION) image"
-ifeq ($(VERSION), dev)
-	@echo "Pushing to docker.io/$(IMG_REPO)/$(IMG_NAME):dev and :latest"
-	$(DOCKERCMD) tag $(IMG_REPO)/$(IMG_NAME):$(VERSION) docker.io/$(IMG_REPO)/$(IMG_NAME):dev
-	$(DOCKERCMD) tag $(IMG_REPO)/$(IMG_NAME):$(VERSION) docker.io/$(IMG_REPO)/$(IMG_NAME):latest
-	$(DOCKERCMD) push docker.io/$(IMG_REPO)/$(IMG_NAME):dev
-	$(DOCKERCMD) push docker.io/$(IMG_REPO)/$(IMG_NAME):latest
-else
-	@echo "Pushing versioned release $(DATE_VERSION) to registries"
-	$(DOCKERCMD) tag $(IMG_REPO)/$(IMG_NAME):$(VERSION) docker.io/$(IMG_REPO)/$(IMG_NAME):$(DATE_VERSION)
-	$(DOCKERCMD) tag $(IMG_REPO)/$(IMG_NAME):$(VERSION) docker.io/$(IMG_REPO)/$(IMG_NAME):latest
-	$(DOCKERCMD) tag $(IMG_REPO)/$(IMG_NAME):$(VERSION) $(IMG_REG)/$(IMG_NS)/$(IMG_NAME):$(DATE_VERSION)
-	$(DOCKERCMD) tag $(IMG_REPO)/$(IMG_NAME):$(VERSION) $(IMG_REG)/$(IMG_NS)/$(IMG_NAME):latest
-	$(DOCKERCMD) push docker.io/$(IMG_REPO)/$(IMG_NAME):$(DATE_VERSION)
-	$(DOCKERCMD) push docker.io/$(IMG_REPO)/$(IMG_NAME):latest
-	$(DOCKERCMD) push $(IMG_REG)/$(IMG_NS)/$(IMG_NAME):$(DATE_VERSION)
-	$(DOCKERCMD) push $(IMG_REG)/$(IMG_NS)/$(IMG_NAME):latest
-endif
-
-end:
-	@echo "Done!"
+run: build
+	docker run --rm -it -p 25:25 $(IMAGE):$(TAG)
