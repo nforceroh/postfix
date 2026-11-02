@@ -243,11 +243,9 @@ configure_external_forwarding_rewrite() {
 	postconf -M "${transport_name}/unix=${transport_name}   unix  -       -       n       -       -       smtp"
 	postconf -P "${transport_name}/unix/sender_canonical_maps=pcre:/etc/postfix/sender_canonical.pcre"
 	postconf -P "${transport_name}/unix/sender_canonical_classes=envelope_sender"
+	# Only one action fires per matched header line, so rewrite From: directly.
 	cat <<EOF >/etc/postfix/external-forward-header-checks.pcre
-/^Reply-To:.*/ IGNORE
-/^From:[[:space:]]*(.*)$/ PREPEND X-Original-From: $1
-/^From:[[:space:]]*(.*)$/ PREPEND Reply-To: $1
-/^From:.*/ REPLACE From: ${rewrite_header_from}
+/^From:.*$/ REPLACE From: ${rewrite_header_from}
 EOF
 	postconf -P "${transport_name}/unix/smtp_header_checks=pcre:/etc/postfix/external-forward-header-checks.pcre"
 }
