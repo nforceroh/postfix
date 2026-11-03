@@ -11,8 +11,9 @@ LABEL \
   org.label-schema.vcs-url="https://github.com/nforceroh/postfix" \
   org.label-schema.schema-version="1.0"
 
-ENV MAILNAME=mail.example.com \
-    MYNETWORKS=127.0.0.0/8\ 10.0.0.0/8\ 172.16.0.0/12\ 192.168.0.0/16 \
+ENV \
+  MAILNAME=mail.example.com \
+  MYNETWORKS=127.0.0.0/8\ 10.0.0.0/8\ 172.16.0.0/16\ 192.168.0.0/16 \
     DB_HOST=10.0.0.101 \
     DB_USER=root \
     DB_PASSWORD=CHANGE_THIS_PASSWORD \
@@ -33,20 +34,12 @@ ENV MAILNAME=mail.example.com \
     EXTERNAL_FORWARD_HEADER_DISPLAY_NAME="Forwarded via martintwingles.com" \
     EXTERNAL_FORWARD_HEADER_FROM=""
 
-RUN echo "Installing postfix" \
-  && if command -v apk >/dev/null 2>&1; then \
-      apk -u add --no-cache postfix postfix-mysql postfix-pcre mailx policyd-spf-fs postfix-doc mariadb-client rspamd-client opendkim gettext; \
-      update-ca-certificates; \
-      rm -rf /var/cache/apk/* /usr/src/*; \
-    elif command -v apt-get >/dev/null 2>&1; then \
-      apt-get update; \
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postfix postfix-pcre postfix-mysql bsd-mailx mariadb-client rspamd opendkim gettext-base ca-certificates; \
-      rm -rf /var/lib/apt/lists/*; \
-    else \
-      echo "No supported package manager found (expected apk or apt-get)"; \
-      exit 1; \
-    fi
+### Install Dependencies
+RUN apk -u add --no-cache postfix postfix-mysql postfix-pcre mailx policyd-spf-fs postfix-doc mariadb-client rspamd-client opendkim gettext && \
+    update-ca-certificates && \
+    rm -rf /var/cache/apk/* /usr/src/*
 
+### Add Files
 COPY /content/etc/postfix /etc/postfix
 COPY --chmod=755 /content/etc/s6-overlay /etc/s6-overlay
 
